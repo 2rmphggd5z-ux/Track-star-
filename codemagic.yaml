@@ -1,0 +1,71 @@
+# Codemagic builds the iPhone app from these files and uploads it to App Store Connect.
+# Before your first build, change the two lines marked CHANGE ME.
+
+workflows:
+  ios-app-store:
+    name: Track Dash for iPhone
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic            # the name you give your App Store Connect key in Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.yourname.trackdash   # CHANGE ME (1 of 2)
+      vars:
+        BUNDLE_ID: com.yourname.trackdash           # CHANGE ME (2 of 2), must match the line above
+        APP_NAME: Track Dash
+        APP_VERSION: "1.0.0"                      # raise this (e.g. 1.0.1) each time you send an update to the App Store
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get the game ready
+        script: |
+          mkdir -p www
+          cp track-dash.html www/index.html
+          node -e "
+            const fs = require('fs');
+            const c = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+            c.appId = process.env.BUNDLE_ID;
+            c.appName = process.env.APP_NAME;
+            fs.writeFileSync('capacitor.config.json', JSON.stringify(c, null, 2));
+          "
+          npm install
+      - name: Create the iPhone project
+        script: |
+          npx cap add ios
+          npx cap sync ios
+      - name: Add the icon, launch screen and app settings
+        script: |
+          set -e
+          cp icon.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+          for f in ios/App/App/Assets.xcassets/Splash.imageset/*.png; do cp splash.png "$f"; done
+          PLIST=ios/App/App/Info.plist
+          plutil -replace CFBundleDisplayName -string "$APP_NAME" $PLIST
+          plutil -replace CFBundleShortVersionString -string "$APP_VERSION" $PLIST
+          plutil -replace CFBundleVersion -string "$BUILD_NUMBER" $PLIST
+          plutil -replace ITSAppUsesNonExemptEncryption -bool NO $PLIST
+          plutil -replace UIStatusBarHidden -bool YES $PLIST
+          plutil -replace UIViewControllerBasedStatusBarAppearance -bool NO $PLIST
+          plutil -replace UIRequiresFullScreen -bool YES $PLIST
+          plutil -replace UISupportedInterfaceOrientations -json '["UIInterfaceOrientationPortrait"]' $PLIST
+          # iPhone only, so the App Store doesn't ask for iPad screenshots
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = 1;/g' ios/App/App.xcodeproj/project.pbxproj
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build the app
+        script: |
+          if [ -d ios/App/App.xcworkspace ]; then
+            xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
+          else
+            xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+          fi
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        submit_to_app_store: false

@@ -1,0 +1,11 @@
+{
+  "appId": "com.yourname.trackdash",
+  "appName": "Track Dash",
+  "webDir": "www",
+  "backgroundColor": "#2b1b4e",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#2b1b4e"
+  }
+}
