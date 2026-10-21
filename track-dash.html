@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Track Dash 3D</title>
+<title>Track Star 3D</title>
 <style>
 :root{
   --panel:#fff8ee;--panel2:#f3e8da;--ink:#2a1b3d;--mute:#6f5f82;--accent:#ff6b35;--accent-deep:#b8431c;--gold:#ffd23f;--night:#2a1b3d;--line:rgba(127,110,150,.28);
@@ -152,7 +152,7 @@ button:disabled{cursor:default}
 
 <section id="menu" class="scr hide">
   <div>
-    <h1 class="logo">Track<br>Dash</h1>
+    <h1 class="logo">Track<br>Star</h1>
     <p class="stats"><span>Best <b id="mBest">0</b></span><span><i class="coin"></i><b id="mBank">0</b></span></p>
   </div>
   <div class="sheet">
@@ -601,6 +601,7 @@ function doRevive(){
 function gameOver(){
   screen='over';running=false;
   var sc=score(),nb=sc>SAVE.best;
+  try{if(window.parent!==window)window.parent.postMessage({type:'hh-score',game:'track-star-3d',score:sc},'*')}catch(e){} /* tell HhGames about the score */
   if(nb)SAVE.best=sc;
   SAVE.bank+=coins;SAVE.total+=coins;SAVE.runs++;
   lastRunD=Date.now();
